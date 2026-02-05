@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Folder, FolderOpen, Plus, Trash2, LogOut } from 'lucide-react'
+import { Folder, FolderOpen, Plus, Trash2, LogOut, Settings } from 'lucide-react'
 import { createFolder, deleteFolder, signOut } from '@/app/actions'
 import { cn } from '@/utils/cn'
 
@@ -36,6 +36,7 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
     const tree = useMemo(() => buildTree(folders), [folders])
     const [newFolderName, setNewFolderName] = useState('')
     const [isCreating, setIsCreating] = useState(false)
+    const pathname = usePathname()
 
     async function handleSignOut() {
         await signOut()
@@ -87,8 +88,22 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
                 )}
             </div>
 
-            <div className="p-4 border-t border-border text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
+            <div className="p-4 border-t border-border">
+                {/* 设置链接 */}
+                <Link
+                    href="/settings"
+                    className={cn(
+                        "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors mb-3",
+                        pathname === '/settings'
+                            ? "bg-indigo-500/10 text-indigo-500"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                >
+                    <Settings size={14} /> 账户设置
+                </Link>
+
+                {/* 用户信息 */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-500 font-bold">
                         {user.email?.[0].toUpperCase()}
                     </div>
@@ -101,7 +116,6 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
 
 function TreeNode({ nodes, level = 0 }: { nodes: any[], level?: number }) {
     const pathname = usePathname()
-    // Simple statebox for creating subfolders locally could be added here
 
     return (
         <div className="flex flex-col gap-0.5">
