@@ -104,8 +104,12 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
 
                 {/* 用户信息 */}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-500 font-bold">
-                        {user.email?.[0].toUpperCase()}
+                    <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-500 font-bold overflow-hidden">
+                        {user.user_metadata?.avatar ? (
+                            <span className="text-base">{user.user_metadata.avatar}</span>
+                        ) : (
+                            user.email?.[0].toUpperCase()
+                        )}
                     </div>
                     <span className="truncate flex-1 font-medium">{user.email}</span>
                 </div>
