@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import PasswordForm from './password-form'
 import AvatarSelector from './avatar-selector'
+import BrandingForm from './branding-form'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
@@ -14,6 +15,8 @@ export default async function SettingsPage() {
     }
 
     const avatar = user.user_metadata?.avatar || ''
+    const siteName = user.user_metadata?.site_name || process.env.NEXT_PUBLIC_SITE_NAME || 'DocSpace' // Added siteName
+    const siteGradient = user.user_metadata?.site_gradient || 'from-indigo-500 to-purple-500' // Added siteGradient
 
     return (
         <div className="p-8 max-w-2xl mx-auto">
@@ -41,6 +44,11 @@ export default async function SettingsPage() {
                         </p>
                     </div>
                 </div>
+            </div>
+
+            {/* 品牌设置 */}
+            <div className="mb-6">
+                <BrandingForm initialName={siteName} initialGradient={siteGradient} />
             </div>
 
             {/* 头像选择 */}

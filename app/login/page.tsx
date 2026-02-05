@@ -1,6 +1,8 @@
 import { login } from './actions'
 
 export default function LoginPage() {
+    const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'DocSpace'
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
             {/* 装饰元素 */}
@@ -10,7 +12,7 @@ export default function LoginPage() {
             <form className="z-10 glass p-8 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col gap-6">
                 <div className="text-center">
                     <h1 className="text-4xl font-bold bg-gradient-to-br from-white to-gray-400 bg-clip-text text-transparent mb-2">
-                        DocSpace
+                        {siteName}
                     </h1>
                     <p className="text-sm text-muted-foreground">请输入您的账号密码以继续</p>
                 </div>

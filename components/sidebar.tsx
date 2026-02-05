@@ -38,6 +38,10 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
     const [isCreating, setIsCreating] = useState(false)
     const pathname = usePathname()
 
+    // 品牌设置：优先使用元数据，其次环境变量，最后默认值
+    const siteName = user.user_metadata?.site_name || process.env.NEXT_PUBLIC_SITE_NAME || 'DocSpace'
+    const siteGradient = user.user_metadata?.site_gradient || 'from-indigo-500 to-purple-500'
+
     async function handleSignOut() {
         await signOut()
     }
@@ -56,8 +60,11 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
     return (
         <aside className="w-64 bg-secondary/30 backdrop-blur-xl border-r border-border h-full flex flex-col shrink-0">
             <div className="p-4 border-b border-border flex items-center justify-between">
-                <span className="font-bold bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-                    DocSpace
+                <span className={cn(
+                    "font-bold bg-gradient-to-r bg-clip-text text-transparent truncate",
+                    siteGradient
+                )}>
+                    {siteName}
                 </span>
                 <button onClick={handleSignOut} className="text-muted-foreground hover:text-foreground transition-colors" title="退出登录">
                     <LogOut size={16} />
