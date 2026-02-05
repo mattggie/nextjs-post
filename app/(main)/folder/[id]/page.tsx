@@ -8,7 +8,7 @@ export default async function FolderPage({ params }: { params: { id: string } })
     const { data: folder, error } = await supabase.from('folders').select('name').eq('id', params.id).single()
 
     if (error || !folder) {
-        return <div className="p-8 text-center text-muted-foreground">Folder not found.</div>
+        return <div className="p-8 text-center text-muted-foreground">文件夹未找到。</div>
     }
 
     const { data: documents } = await supabase.from('documents').select('*').eq('folder_id', params.id).order('updated_at', { ascending: false })

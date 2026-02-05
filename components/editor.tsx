@@ -36,27 +36,27 @@ export default function Editor({ doc }: { doc: any }) {
                     <h1 className="font-semibold text-sm truncate max-w-[200px]">{doc.title}</h1>
                     <div className="h-4 w-[1px] bg-border mx-2"></div>
                     <span className={cn("text-xs transition-opacity", isSaving ? "opacity-100 text-indigo-500 font-medium" : "opacity-0 text-muted-foreground")}>
-                        Saving...
+                        保存中...
                     </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <SplitSquareHorizontal size={14} /> Markdown Editor
+                    <SplitSquareHorizontal size={14} /> Markdown 编辑器
                 </div>
             </header>
 
             <div className="flex-1 flex overflow-hidden">
-                {/* Editor Pane */}
+                {/* 编辑区 */}
                 <div className="w-1/2 h-full flex flex-col border-r border-border bg-card/30">
                     <textarea
                         className="w-full h-full bg-transparent resize-none p-6 outline-none font-mono text-sm leading-relaxed"
-                        placeholder="# Start writing..."
+                        placeholder="# 开始写作..."
                         value={content}
                         onChange={e => setContent(e.target.value)}
                         autoFocus
                     />
                 </div>
 
-                {/* Preview Pane */}
+                {/* 预览区 */}
                 <div className="w-1/2 h-full overflow-y-auto bg-background">
                     <article className="prose prose-zinc dark:prose-invert max-w-none p-8 prose-headings:font-bold prose-h1:text-3xl prose-p:leading-7 prose-a:text-indigo-500 prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>

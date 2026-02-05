@@ -58,7 +58,7 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
                 <span className="font-bold bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
                     DocSpace
                 </span>
-                <button onClick={handleSignOut} className="text-muted-foreground hover:text-foreground transition-colors" title="Sign Out">
+                <button onClick={handleSignOut} className="text-muted-foreground hover:text-foreground transition-colors" title="退出登录">
                     <LogOut size={16} />
                 </button>
             </div>
@@ -71,7 +71,7 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
                         <input
                             autoFocus
                             className="w-full bg-background border rounded px-2 py-1 text-sm outline-none focus:ring-1 ring-indigo-500"
-                            placeholder="Folder name..."
+                            placeholder="文件夹名称..."
                             value={newFolderName}
                             onChange={e => setNewFolderName(e.target.value)}
                             onBlur={() => !newFolderName && setIsCreating(false)}
@@ -82,7 +82,7 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
                         onClick={() => setIsCreating(true)}
                         className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors mt-2"
                     >
-                        <Plus size={14} /> New Folder
+                        <Plus size={14} /> 新建文件夹
                     </button>
                 )}
             </div>
@@ -123,7 +123,7 @@ function TreeNode({ nodes, level = 0 }: { nodes: any[], level?: number }) {
                             <button
                                 onClick={(e) => {
                                     e.preventDefault()
-                                    if (confirm('Delete folder and all contents?')) deleteFolder(node.id)
+                                    if (confirm('确定删除该文件夹及其内容吗？')) deleteFolder(node.id)
                                 }}
                                 className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 hover:text-destructive rounded transition-opacity"
                             >

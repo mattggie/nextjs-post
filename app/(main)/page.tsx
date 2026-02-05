@@ -16,8 +16,8 @@ export default function DashboardPage() {
                     />
                 </svg>
             </div>
-            <h3 className="text-lg font-medium text-foreground">No folder selected</h3>
-            <p className="max-w-xs mt-2">Select a folder from the sidebar to view documents or create a new one.</p>
+            <h3 className="text-lg font-medium text-foreground">未选择文件夹</h3>
+            <p className="max-w-xs mt-2">请从左侧栏选择一个文件夹以查看文档，或创建新文件夹。</p>
         </div>
     )
 }

@@ -41,7 +41,7 @@ export async function createDocument(formData: FormData) {
     }
 
     revalidatePath(`/folder/${folderId}`)
-    revalidatePath('/', 'layout') // Update count maybe?
+    revalidatePath('/', 'layout')
     return { id: data.id }
 }
 

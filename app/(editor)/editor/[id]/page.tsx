@@ -15,8 +15,8 @@ export default async function EditorPage({ params }: { params: { id: string } })
     if (error || !doc) {
         return (
             <div className="h-screen flex items-center justify-center flex-col gap-4">
-                <h1 className="text-2xl font-bold">Document not found</h1>
-                <p className="text-muted-foreground">It may have been deleted.</p>
+                <h1 className="text-2xl font-bold">文档未找到</h1>
+                <p className="text-muted-foreground">该文档可能已被删除。</p>
             </div>
         )
     }

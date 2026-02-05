@@ -29,7 +29,7 @@ export default function FileList({ folderId, folderName, documents }: { folderId
                     onClick={() => setIsCreating(true)}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
                 >
-                    <Plus size={16} /> New Document
+                    <Plus size={16} /> 新建文档
                 </button>
             </header>
 
@@ -38,7 +38,7 @@ export default function FileList({ folderId, folderName, documents }: { folderId
                     <input
                         autoFocus
                         className="w-full bg-transparent text-lg font-medium outline-none placeholder:text-muted-foreground"
-                        placeholder="Document Title..."
+                        placeholder="文档标题..."
                         value={title}
                         onChange={e => setTitle(e.target.value)}
                         onBlur={() => !title && setIsCreating(false)}
@@ -57,13 +57,13 @@ export default function FileList({ folderId, folderName, documents }: { folderId
                                 <h3 className="font-medium text-foreground group-hover:text-indigo-500 transition-colors">{doc.title}</h3>
                                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                                     <Calendar size={10} />
-                                    {format(new Date(doc.updated_at), 'MMM d, yyyy')}
+                                    {format(new Date(doc.updated_at), 'yyyy年MM月dd日')}
                                 </p>
                             </div>
                         </Link>
                         <button
                             onClick={async () => {
-                                if (confirm('Delete document?')) await deleteDocument(doc.id)
+                                if (confirm('确定删除该文档吗？')) await deleteDocument(doc.id)
                             }}
                             className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all p-2 hover:bg-destructive/10 rounded-lg"
                         >
@@ -75,7 +75,7 @@ export default function FileList({ folderId, folderName, documents }: { folderId
 
             {documents.length === 0 && !isCreating && (
                 <div className="text-center py-20 text-muted-foreground">
-                    <p>No documents found.</p>
+                    <p>暂无文档。</p>
                 </div>
             )}
         </div>
