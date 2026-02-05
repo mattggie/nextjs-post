@@ -2,7 +2,8 @@ import { createClient } from '@/utils/supabase/server'
 import Editor from '@/components/editor'
 import { redirect } from 'next/navigation'
 
-export default async function EditorPage({ params }: { params: { id: string } }) {
+export default async function EditorPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -10,7 +11,11 @@ export default async function EditorPage({ params }: { params: { id: string } })
         redirect('/login')
     }
 
-    const { data: doc, error } = await supabase.from('documents').select('*').eq('id', params.id).single()
+    const { data: doc, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', id)
+        .single()
 
     if (error || !doc) {
         return (
