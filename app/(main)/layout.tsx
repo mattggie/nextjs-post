@@ -10,6 +10,12 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         redirect('/login')
     }
 
+    // 确保初始账号拥有管理员权限（即使用户元数据中尚未写入）
+    const isAdmin = user.user_metadata?.role === 'admin' || user.email === process.env.DEFAULT_EMAIL
+    if (isAdmin && user.user_metadata?.role !== 'admin') {
+        user.user_metadata = { ...user.user_metadata, role: 'admin' }
+    }
+
     const { data: folders } = await supabase
         .from('folders')
         .select('*')

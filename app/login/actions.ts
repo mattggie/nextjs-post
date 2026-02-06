@@ -27,6 +27,9 @@ export async function login(formData: FormData) {
             const { error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: { role: 'admin' }
+                }
             })
             if (signUpError) {
                 console.error('Auto-signup failed:', signUpError)

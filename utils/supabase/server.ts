@@ -27,3 +27,20 @@ export async function createClient() {
         }
     )
 }
+
+/**
+ * 创建具有管理权限的 Supabase 客户端
+ * 只能在服务器端安全环境中使用，用于管理用户等操作
+ */
+export async function createAdminClient() {
+    return createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+            cookies: {
+                getAll() { return [] },
+                setAll() { },
+            },
+        }
+    )
+}

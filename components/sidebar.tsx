@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useOptimistic, useTransition } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Folder, FolderOpen, Plus, Trash2, LogOut, Settings } from 'lucide-react'
 import { createFolder, deleteFolder, signOut } from '@/app/actions'
 import { cn } from '@/utils/cn'
+import Loading from './loading'
+import { ThemeToggle } from './theme-toggle'
 
 type FolderType = {
     id: string
@@ -32,10 +34,22 @@ function buildTree(folders: FolderType[]) {
     return roots
 }
 
-export default function Sidebar({ folders, user }: { folders: FolderType[], user: any }) {
-    const tree = useMemo(() => buildTree(folders), [folders])
+export default function Sidebar({ folders: initialFolders, user }: { folders: FolderType[], user: any }) {
+    const [isPending, startTransition] = useTransition()
+    const [optimisticFolders, addOptimisticFolder] = useOptimistic(
+        initialFolders,
+        (state: FolderType[], { action, folder }: { action: 'add' | 'delete', folder: FolderType }) => {
+            if (action === 'add') return [...state, folder]
+            if (action === 'delete') return state.filter(f => f.id !== folder.id)
+            return state
+        }
+    )
+
+    const tree = useMemo(() => buildTree(optimisticFolders), [optimisticFolders])
     const [newFolderName, setNewFolderName] = useState('')
     const [isCreating, setIsCreating] = useState(false)
+    const [isOpen, setIsOpen] = useState(false)
+    const [isGlobalLoading, setIsGlobalLoading] = useState(false)
     const pathname = usePathname()
 
     // 品牌设置：优先使用元数据，其次环境变量，最后默认值
@@ -43,89 +57,157 @@ export default function Sidebar({ folders, user }: { folders: FolderType[], user
     const siteGradient = user.user_metadata?.site_gradient || 'from-indigo-500 to-purple-500'
 
     async function handleSignOut() {
+        setIsGlobalLoading(true)
         await signOut()
     }
 
     async function handleCreate(e: React.FormEvent) {
         e.preventDefault()
         if (!newFolderName) return
-        const formData = new FormData()
-        formData.set('name', newFolderName)
-        formData.set('parentId', 'null')
-        await createFolder(formData)
-        setNewFolderName('')
-        setIsCreating(false)
+
+        const tempId = Math.random().toString()
+        const newFolder = { id: tempId, name: newFolderName, parent_id: null }
+
+        startTransition(async () => {
+            addOptimisticFolder({ action: 'add', folder: newFolder })
+            setNewFolderName('')
+            setIsCreating(false)
+
+            const formData = new FormData()
+            formData.set('name', newFolderName)
+            formData.set('parentId', 'null')
+            await createFolder(formData)
+        })
+    }
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('确定删除该文件夹及其内容吗？')) return
+
+        startTransition(async () => {
+            addOptimisticFolder({ action: 'delete', folder: { id, name: '', parent_id: null } })
+            await deleteFolder(id)
+        })
+    }
+
+    // 在手机端点击链接后自动关闭侧边栏
+    const handleLinkClick = () => {
+        if (window.innerWidth < 768) {
+            setIsOpen(false)
+        }
     }
 
     return (
-        <aside className="w-64 bg-secondary/30 backdrop-blur-xl border-r border-border h-full flex flex-col shrink-0">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-                <span className={cn(
-                    "font-bold bg-gradient-to-r bg-clip-text text-transparent truncate",
-                    siteGradient
-                )}>
-                    {siteName}
-                </span>
-                <button onClick={handleSignOut} className="text-muted-foreground hover:text-foreground transition-colors" title="退出登录">
-                    <LogOut size={16} />
-                </button>
-            </div>
+        <>
+            {isGlobalLoading && <Loading message="正在退出..." />}
+            {/* 手机端背景遮罩 */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm transition-opacity"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
 
-            <div className="flex-1 overflow-y-auto p-2">
-                <TreeNode nodes={tree} />
+            {/* 手机端汉堡菜单按钮 */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="fixed top-4 left-4 z-50 p-2 bg-background border rounded-lg shadow-lg md:hidden hover:bg-muted transition-colors"
+                aria-label="切换菜单"
+            >
+                {isOpen ? <Plus className="rotate-45" size={20} /> : <div className="flex flex-col gap-1 w-5"><div className="h-0.5 bg-foreground"></div><div className="h-0.5 bg-foreground"></div><div className="h-0.5 bg-foreground"></div></div>}
+            </button>
 
-                {isCreating ? (
-                    <form onSubmit={handleCreate} className="px-2 py-1 mt-2">
-                        <input
-                            autoFocus
-                            className="w-full bg-background border rounded px-2 py-1 text-sm outline-none focus:ring-1 ring-indigo-500"
-                            placeholder="文件夹名称..."
-                            value={newFolderName}
-                            onChange={e => setNewFolderName(e.target.value)}
-                            onBlur={() => !newFolderName && setIsCreating(false)}
-                        />
-                    </form>
-                ) : (
-                    <button
-                        onClick={() => setIsCreating(true)}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors mt-2"
-                    >
-                        <Plus size={14} /> 新建文件夹
-                    </button>
-                )}
-            </div>
-
-            <div className="p-4 border-t border-border">
-                {/* 设置链接 */}
-                <Link
-                    href="/settings"
-                    className={cn(
-                        "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors mb-3",
-                        pathname === '/settings'
-                            ? "bg-indigo-500/10 text-indigo-500"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                >
-                    <Settings size={14} /> 账户设置
-                </Link>
-
-                {/* 用户信息 */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-500 font-bold overflow-hidden">
-                        {user.user_metadata?.avatar ? (
-                            <span className="text-base">{user.user_metadata.avatar}</span>
-                        ) : (
-                            user.email?.[0].toUpperCase()
-                        )}
+            <aside className={cn(
+                "fixed inset-y-0 left-0 z-40 w-64 bg-background/80 backdrop-blur-xl border-r border-border h-full flex flex-col shrink-0 transition-transform duration-300 md:relative md:translate-x-0 shadow-2xl md:shadow-none",
+                isOpen ? "translate-x-0" : "-translate-x-full"
+            )}>
+                <div className="p-4 border-b border-border flex items-center justify-between">
+                    <span className={cn(
+                        "font-bold bg-gradient-to-r bg-clip-text text-transparent truncate text-lg",
+                        siteGradient
+                    )}>
+                        {siteName}
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <ThemeToggle />
+                        <button onClick={handleSignOut} className="p-2 text-muted-foreground hover:text-foreground transition-colors" title="退出登录">
+                            <LogOut size={16} />
+                        </button>
                     </div>
-                    <span className="truncate flex-1 font-medium">{user.email}</span>
                 </div>
-            </div>
-        </aside>
+
+                <div className="flex-1 overflow-y-auto p-2 scrollbar-none" onClick={handleLinkClick}>
+                    <TreeNode nodes={tree} onDelete={handleDelete} />
+
+                    {isCreating ? (
+                        <form onSubmit={handleCreate} className="px-2 py-1 mt-2">
+                            <input
+                                autoFocus
+                                className="w-full bg-background border rounded px-2 py-1 text-sm outline-none focus:ring-1 ring-indigo-500"
+                                placeholder="文件夹名称..."
+                                value={newFolderName}
+                                onChange={e => setNewFolderName(e.target.value)}
+                                onBlur={() => !newFolderName && setIsCreating(false)}
+                            />
+                        </form>
+                    ) : (
+                        <button
+                            onClick={() => setIsCreating(true)}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors mt-2"
+                        >
+                            <Plus size={14} /> 新建文件夹
+                        </button>
+                    )}
+                </div>
+
+                <div className="p-4 border-t border-border space-y-1">
+                    {/* 个人设置 */}
+                    <Link
+                        href="/settings"
+                        onClick={handleLinkClick}
+                        className={cn(
+                            "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
+                            pathname === '/settings'
+                                ? "bg-indigo-500/10 text-indigo-500 font-medium"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                    >
+                        <Settings size={14} /> 个人设置
+                    </Link>
+
+                    {/* 系统设置 - 仅管理员可见 */}
+                    {user.user_metadata?.role === 'admin' && (
+                        <Link
+                            href="/settings/system"
+                            onClick={handleLinkClick}
+                            className={cn(
+                                "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
+                                pathname.startsWith('/settings/system')
+                                    ? "bg-indigo-500/10 text-indigo-500 font-medium"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )}
+                        >
+                            <Settings size={14} className="text-purple-500" /> 系统设置
+                        </Link>
+                    )}
+
+                    {/* 用户信息 */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-500 font-bold overflow-hidden shrink-0">
+                            {user.user_metadata?.avatar ? (
+                                <span className="text-base">{user.user_metadata.avatar}</span>
+                            ) : (
+                                user.email?.[0].toUpperCase()
+                            )}
+                        </div>
+                        <span className="truncate flex-1 font-medium">{user.email}</span>
+                    </div>
+                </div>
+            </aside>
+        </>
     )
 }
 
-function TreeNode({ nodes, level = 0 }: { nodes: any[], level?: number }) {
+function TreeNode({ nodes, onDelete, level = 0 }: { nodes: any[], onDelete: (id: string) => void, level?: number }) {
     const pathname = usePathname()
 
     return (
@@ -148,14 +230,14 @@ function TreeNode({ nodes, level = 0 }: { nodes: any[], level?: number }) {
                             <button
                                 onClick={(e) => {
                                     e.preventDefault()
-                                    if (confirm('确定删除该文件夹及其内容吗？')) deleteFolder(node.id)
+                                    onDelete(node.id)
                                 }}
                                 className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 hover:text-destructive rounded transition-opacity"
                             >
                                 <Trash2 size={12} />
                             </button>
                         </Link>
-                        {node.children.length > 0 && <TreeNode nodes={node.children} level={level + 1} />}
+                        {node.children.length > 0 && <TreeNode nodes={node.children} onDelete={onDelete} level={level + 1} />}
                     </div>
                 )
             })}

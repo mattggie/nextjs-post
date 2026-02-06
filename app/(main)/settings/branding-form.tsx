@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Palette, Loader2, Check } from 'lucide-react'
+import { Palette, Check } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import Loading from '@/components/loading'
 
 const GRADIENTS = [
     { name: '经典紫蓝', value: 'from-indigo-500 to-purple-500' },
@@ -53,6 +54,7 @@ export default function BrandingForm({
 
     return (
         <div className="bg-card border rounded-xl p-6">
+            {isLoading && <Loading message="正在保存品牌设置..." />}
             <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-lg">
                     <Palette size={20} />
@@ -62,8 +64,8 @@ export default function BrandingForm({
 
             {message && (
                 <div className={`mb-4 p-3 rounded-lg text-sm ${message.type === 'error'
-                        ? 'bg-destructive/10 text-destructive border border-destructive/20'
-                        : 'bg-green-500/10 text-green-600 border border-green-500/20'
+                    ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                    : 'bg-green-500/10 text-green-600 border border-green-500/20'
                     }`}>
                     {message.text}
                 </div>
@@ -106,7 +108,7 @@ export default function BrandingForm({
                     disabled={isLoading}
                     className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white font-medium p-3 rounded-lg transition-all active:scale-[0.98] shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                 >
-                    {isLoading ? <Loader2 size={16} className="animate-spin" /> : '保存品牌设置'}
+                    保存品牌设置
                 </button>
             </div>
         </div>

@@ -91,8 +91,8 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -100,5 +100,66 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+}
+
+/* Markdown Body Integration */
+.markdown-body {
+  background-color: transparent !important;
+  color: hsl(var(--foreground)) !important;
+  font-family: inherit !important;
+  transition: color 0.3s ease;
+}
+
+.dark .markdown-body {
+  color: #adbac7 !important;
+  /* GitHub dark theme text color */
+}
+
+/* Code blocks and Mermaid charts - Theme Aware */
+.markdown-body pre {
+  background-color: #f6f8fa !important;
+  border: 1px solid #d0d7de !important;
+  transition: all 0.3s ease;
+}
+
+.dark .markdown-body pre {
+  background-color: #0d1117 !important;
+  border: 1px solid #30363d !important;
+}
+
+.markdown-body code {
+  color: inherit !important;
+}
+
+.mermaid-container {
+  background-color: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  transition: all 0.3s ease;
+}
+
+.dark .mermaid-container {
+  background-color: #161b22;
+  border: 1px solid #30363d;
+}
+
+.markdown-body table tr {
+  background-color: transparent !important;
+  border-top: 1px solid var(--color-border) !important;
+}
+
+.markdown-body table td,
+.markdown-body table th {
+  border: 1px solid var(--color-border) !important;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.dark .markdown-body table tr:nth-child(2n) {
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }

@@ -51,10 +51,29 @@ export async function deleteDocument(id: string) {
     revalidatePath('/', 'layout')
 }
 
-export async function updateDocument(id: string, content: string) {
+export async function updateDocument(id: string, updates: { title?: string, content?: string }) {
     const supabase = await createClient()
-    await supabase.from('documents').update({ content }).eq('id', id)
+    await supabase.from('documents').update(updates).eq('id', id)
     revalidatePath(`/editor/${id}`)
+    revalidatePath('/', 'layout')
+}
+
+export async function searchDocuments(query: string, folderId?: string) {
+    const supabase = await createClient()
+    let q = supabase.from('documents').select('*')
+
+    if (folderId) {
+        q = q.eq('folder_id', folderId)
+    }
+
+    const { data, error } = await q.ilike('title', `%${query}%`).order('updated_at', { ascending: false })
+
+    if (error) {
+        console.error(error)
+        return []
+    }
+
+    return data
 }
 
 export async function signOut() {

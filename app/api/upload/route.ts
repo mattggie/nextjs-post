@@ -1,23 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-// API 端点：上传/创建文档
-// 
-// 使用方式:
-// POST /api/upload
-// Headers: 
-//   x-api-key: 你的API密钥 (在.env中设置API_SECRET)
-// Body (JSON):
-//   {
-//     "title": "文档标题",
-//     "content": "Markdown内容",
-//     "folder_id": "目标文件夹ID"
-//   }
-//
-// 响应:
-//   成功: { "success": true, "id": "新文档ID" }
-//   失败: { "error": "错误信息" }
-
 export async function POST(request: NextRequest) {
     const apiKey = request.headers.get('x-api-key')
 
@@ -33,14 +16,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json()
-        const { title, content, folder_id } = body
-
-        if (!title) {
-            return NextResponse.json({ error: '缺少必填字段: title' }, { status: 400 })
-        }
-        if (!folder_id) {
-            return NextResponse.json({ error: '缺少必填字段: folder_id' }, { status: 400 })
-        }
+        const { action, title, content, folder_id, name } = body
 
         // 使用 Service Role Key 创建管理员客户端 (绕过RLS)
         const supabaseAdmin = createClient(
@@ -49,43 +25,58 @@ export async function POST(request: NextRequest) {
             { auth: { persistSession: false } }
         )
 
-        // 验证文件夹是否存在
-        const { data: folder, error: folderError } = await supabaseAdmin
-            .from('folders')
-            .select('id, user_id')
-            .eq('id', folder_id)
-            .single()
+        // 获取第一个用户（作为API上传的归属者，通常是您自己）
+        const { data: { users }, error: userError } = await supabaseAdmin.auth.admin.listUsers()
+        if (userError || !users || users.length === 0) {
+            return NextResponse.json({ error: '未找到系统用户' }, { status: 500 })
+        }
+        const targetUser = users[0]
 
-        if (folderError || !folder) {
-            return NextResponse.json({ error: '指定的文件夹不存在' }, { status: 404 })
+        // --- 动作 1: 创建文件夹 ---
+        if (action === 'create_folder') {
+            if (!name) return NextResponse.json({ error: '缺少文件夹名称' }, { status: 400 })
+
+            const { data, error } = await supabaseAdmin
+                .from('folders')
+                .insert({ name, user_id: targetUser.id })
+                .select('id')
+                .single()
+
+            if (error) throw error
+            return NextResponse.json({ success: true, id: data.id })
         }
 
-        // 插入文档，继承文件夹的 user_id
-        const { data, error } = await supabaseAdmin
-            .from('documents')
-            .insert({
-                title,
-                content: content || '',
-                folder_id,
-                user_id: folder.user_id
-            })
-            .select('id')
-            .single()
+        // --- 动作 2: 上传文档 ---
+        if (action === 'upload_document' || !action) { // 兼容旧版不带action的调用
+            if (!title || !folder_id) {
+                return NextResponse.json({ error: '缺少必填字段: title 或 folder_id' }, { status: 400 })
+            }
 
-        if (error) {
-            console.error('插入文档失败:', error)
-            return NextResponse.json({ error: '创建文档失败' }, { status: 500 })
+            // 插入文档
+            const { data, error } = await supabaseAdmin
+                .from('documents')
+                .insert({
+                    title,
+                    content: content || '',
+                    folder_id,
+                    user_id: targetUser.id
+                })
+                .select('id')
+                .single()
+
+            if (error) throw error
+            return NextResponse.json({ success: true, id: data.id })
         }
 
-        return NextResponse.json({ success: true, id: data.id })
+        return NextResponse.json({ error: '无效的操作类型' }, { status: 400 })
 
-    } catch (e) {
-        console.error('API错误:', e)
-        return NextResponse.json({ error: '请求格式无效' }, { status: 400 })
+    } catch (e: any) {
+        console.error('API 错误:', e)
+        return NextResponse.json({ error: e.message || '内部服务器错误' }, { status: 500 })
     }
 }
 
-// GET 请求：获取所有文件夹 (用于查询 folder_id)
+// GET 请求：获取所有文件夹
 export async function GET(request: NextRequest) {
     const apiKey = request.headers.get('x-api-key')
 
@@ -93,24 +84,17 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: '未授权访问' }, { status: 401 })
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        return NextResponse.json({ error: '服务器配置错误' }, { status: 500 })
-    }
-
     const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { persistSession: false } }
     )
 
     const { data: folders, error } = await supabaseAdmin
         .from('folders')
-        .select('id, name, parent_id')
+        .select('id, name')
         .order('name')
 
-    if (error) {
-        return NextResponse.json({ error: '获取文件夹失败' }, { status: 500 })
-    }
-
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ folders })
 }

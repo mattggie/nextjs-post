@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Key, Loader2 } from 'lucide-react'
+import { Key } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import Loading from '@/components/loading'
 
 export default function PasswordForm({ userEmail }: { userEmail: string }) {
     const [isLoading, setIsLoading] = useState(false)
@@ -57,6 +58,7 @@ export default function PasswordForm({ userEmail }: { userEmail: string }) {
 
     return (
         <div className="bg-card border rounded-xl p-6">
+            {isLoading && <Loading message="正在更新密码..." />}
             <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-lg">
                     <Key size={20} />
@@ -109,12 +111,7 @@ export default function PasswordForm({ userEmail }: { userEmail: string }) {
                     disabled={isLoading}
                     className="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-400 text-white font-medium p-3 rounded-lg transition-all active:scale-[0.98] shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                 >
-                    {isLoading ? (
-                        <>
-                            <Loader2 size={16} className="animate-spin" />
-                            更新中...
-                        </>
-                    ) : '更新密码'}
+                    更新密码
                 </button>
             </form>
         </div>
