@@ -160,20 +160,6 @@ export default function Sidebar({ folders: initialFolders, user }: { folders: Fo
                 </div>
 
                 <div className="p-4 border-t border-border space-y-1">
-                    {/* 个人设置 */}
-                    <Link
-                        href="/settings"
-                        onClick={handleLinkClick}
-                        className={cn(
-                            "flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors",
-                            pathname === '/settings'
-                                ? "bg-indigo-500/10 text-indigo-500 font-medium"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                        )}
-                    >
-                        <Settings size={14} /> 个人设置
-                    </Link>
-
                     {/* 系统设置 - 仅管理员可见 */}
                     {user.user_metadata?.role === 'admin' && (
                         <Link
@@ -190,8 +176,17 @@ export default function Sidebar({ folders: initialFolders, user }: { folders: Fo
                         </Link>
                     )}
 
-                    {/* 用户信息 */}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {/* 用户信息 - 点击进入个人设置 */}
+                    <Link
+                        href="/settings"
+                        onClick={handleLinkClick}
+                        className={cn(
+                            "flex items-center gap-2 px-2 py-2 rounded-lg transition-all",
+                            pathname === '/settings'
+                                ? "bg-indigo-500/10 text-indigo-500 ring-1 ring-indigo-500/20"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                    >
                         <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-500 font-bold overflow-hidden shrink-0">
                             {user.user_metadata?.avatar ? (
                                 <span className="text-base">{user.user_metadata.avatar}</span>
@@ -199,8 +194,8 @@ export default function Sidebar({ folders: initialFolders, user }: { folders: Fo
                                 user.email?.[0].toUpperCase()
                             )}
                         </div>
-                        <span className="truncate flex-1 font-medium">{user.email}</span>
-                    </div>
+                        <span className="truncate flex-1 text-xs font-medium">{user.email}</span>
+                    </Link>
                 </div>
             </aside>
         </>
