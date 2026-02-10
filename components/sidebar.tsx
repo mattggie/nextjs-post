@@ -3,7 +3,7 @@
 import { useState, useMemo, useOptimistic, useTransition } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Folder, FolderOpen, Plus, Trash2, LogOut, Settings } from 'lucide-react'
+import { Folder, FolderOpen, Plus, Trash2, LogOut, Settings, Check, X } from 'lucide-react'
 import { createFolder, deleteFolder, signOut } from '@/app/actions'
 import { cn } from '@/utils/cn'
 import Loading from './loading'
@@ -81,8 +81,6 @@ export default function Sidebar({ folders: initialFolders, user }: { folders: Fo
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('确定删除该文件夹及其内容吗？')) return
-
         startTransition(async () => {
             addOptimisticFolder({ action: 'delete', folder: { id, name: '', parent_id: null } })
             await deleteFolder(id)
@@ -204,34 +202,68 @@ export default function Sidebar({ folders: initialFolders, user }: { folders: Fo
 
 function TreeNode({ nodes, onDelete, level = 0 }: { nodes: any[], onDelete: (id: string) => void, level?: number }) {
     const pathname = usePathname()
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
     return (
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5" onMouseLeave={() => setConfirmDeleteId(null)}>
             {nodes.map(node => {
                 const isActive = pathname === `/folder/${node.id}`
+                const isConfirming = confirmDeleteId === node.id
+
                 return (
                     <div key={node.id}>
-                        <Link
-                            href={`/folder/${node.id}`}
+                        <div
                             className={cn(
                                 "flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-all group relative",
-                                isActive ? "bg-indigo-500/10 text-indigo-500 font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                isActive ? "bg-indigo-500/10 text-indigo-500 font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                                isConfirming && "bg-destructive/10 text-destructive"
                             )}
                             style={{ paddingLeft: `${(level * 12) + 8}px` }}
                         >
-                            {isActive ? <FolderOpen size={16} className="shrink-0" /> : <Folder size={16} className="shrink-0" />}
-                            <span className="truncate">{node.name}</span>
+                            <Link href={`/folder/${node.id}`} className="flex items-center gap-2 flex-1 min-w-0">
+                                {isActive ? <FolderOpen size={16} className="shrink-0" /> : <Folder size={16} className="shrink-0" />}
+                                <span className="truncate">{node.name}</span>
+                            </Link>
 
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    onDelete(node.id)
-                                }}
-                                className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 hover:text-destructive rounded transition-opacity"
-                            >
-                                <Trash2 size={12} />
-                            </button>
-                        </Link>
+                            <div className="flex items-center">
+                                {isConfirming ? (
+                                    <div className="flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                onDelete(node.id)
+                                                setConfirmDeleteId(null)
+                                            }}
+                                            className="p-1 hover:bg-destructive hover:text-white rounded transition-colors"
+                                            title="确定删除"
+                                        >
+                                            <Check size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setConfirmDeleteId(null)
+                                            }}
+                                            className="p-1 hover:bg-muted rounded transition-colors"
+                                            title="取消"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setConfirmDeleteId(node.id)
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 hover:text-destructive rounded transition-opacity"
+                                        title="删除文件夹"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                         {node.children.length > 0 && <TreeNode nodes={node.children} onDelete={onDelete} level={level + 1} />}
                     </div>
                 )

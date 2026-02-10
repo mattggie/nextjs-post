@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Save, SplitSquareHorizontal } from 'lucide-react'
+import { ArrowLeft, Save, SplitSquareHorizontal, Bot, Sparkles, Send, CheckCircle2, AlertCircle } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -12,15 +12,65 @@ import rehypeKatex from 'rehype-katex'
 import 'github-markdown-css/github-markdown.css'
 import 'highlight.js/styles/github.css'
 import 'katex/dist/katex.min.css'
-import { updateDocument } from '@/app/actions'
+import { updateDocument, processWithAi } from '@/app/actions'
 import { cn } from '@/utils/cn'
 import Mermaid from '@/components/mermaid'
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
 
 export default function Editor({ doc }: { doc: any }) {
     const [title, setTitle] = useState(doc.title || '')
     const [content, setContent] = useState(doc.content || '')
     const [isSaving, setIsSaving] = useState(false)
+    const [isAiPanelOpen, setIsAiPanelOpen] = useState(false)
+    const [aiConfigs, setAiConfigs] = useState<any[]>([])
+    const [aiPrompts, setAiPrompts] = useState<any[]>([])
+    const [selectedConfig, setSelectedConfig] = useState('')
+    const [selectedPrompt, setSelectedPrompt] = useState('')
+    const [isAiProcessing, setIsAiProcessing] = useState(false)
+    const [aiStatus, setAiStatus] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
     const lastSavedData = useRef({ title: doc.title, content: doc.content })
+    const router = useRouter()
+
+    useEffect(() => {
+        // 获取 AI 设置
+        const fetchAiSettings = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                setAiConfigs(user.user_metadata?.ai_configs || [])
+                setAiPrompts(user.user_metadata?.ai_prompts || [])
+                if (user.user_metadata?.ai_configs?.[0]) setSelectedConfig(user.user_metadata.ai_configs[0].id)
+                if (user.user_metadata?.ai_prompts?.[0]) setSelectedPrompt(user.user_metadata.ai_prompts[0].id)
+            }
+        }
+        fetchAiSettings()
+    }, [])
+
+    async function handleAiExecute() {
+        if (!selectedConfig || !selectedPrompt) {
+            setAiStatus({ type: 'error', text: '请先在系统设置中配置 AI 模型和提示词' })
+            return
+        }
+
+        setIsAiProcessing(true)
+        setAiStatus(null)
+
+        const result = await processWithAi(doc.id, selectedConfig, selectedPrompt)
+
+        setIsAiProcessing(false)
+        if (result.error) {
+            setAiStatus({ type: 'error', text: result.error })
+        } else {
+            setAiStatus({ type: 'success', text: '处理成功！已生成新文档。' })
+            setTimeout(() => {
+                setIsAiPanelOpen(false)
+                setAiStatus(null)
+                router.push(`/editor/${result.id}`)
+            }, 1500)
+        }
+    }
 
     useEffect(() => {
         if (content === lastSavedData.current.content && title === lastSavedData.current.title) return
@@ -61,6 +111,20 @@ export default function Editor({ doc }: { doc: any }) {
                 </div>
 
                 <div className="flex items-center gap-1 md:gap-2">
+                    <button
+                        onClick={() => setIsAiPanelOpen(!isAiPanelOpen)}
+                        className={cn(
+                            "px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md active:scale-95",
+                            isAiPanelOpen
+                                ? "bg-indigo-600 text-white shadow-indigo-500/20"
+                                : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+                        )}
+                    >
+                        <span>AI 处理</span>
+                    </button>
+
+                    <div className="h-4 w-[1px] bg-border mx-1 hidden sm:block"></div>
+
                     {/* 手机端模式切换 */}
                     <div className="flex bg-muted rounded-lg p-1 md:hidden mr-2">
                         <button
@@ -82,6 +146,64 @@ export default function Editor({ doc }: { doc: any }) {
                     </div>
                 </div>
             </header>
+
+            {/* AI 选项面板 */}
+            {isAiPanelOpen && (
+                <div className="bg-card border-b border-border shadow-2xl animate-in slide-in-from-top duration-300 z-[5]">
+                    <div className="max-w-4xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-muted-foreground/70 tracking-wider">选择模型 API</label>
+                            <select
+                                value={selectedConfig}
+                                onChange={(e) => setSelectedConfig(e.target.value)}
+                                className="w-full bg-background border border-border/60 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all font-bold"
+                            >
+                                {aiConfigs.map(c => <option key={c.id} value={c.id}>{c.name} ({c.model})</option>)}
+                                {aiConfigs.length === 0 && <option value="">未配置 API (去设置页添加)</option>}
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-muted-foreground/70 tracking-wider">选择任务模板</label>
+                            <select
+                                value={selectedPrompt}
+                                onChange={(e) => setSelectedPrompt(e.target.value)}
+                                className="w-full bg-background border border-border/60 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all font-bold"
+                            >
+                                {aiPrompts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                {aiPrompts.length === 0 && <option value="">未配置提示词</option>}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <button
+                                onClick={handleAiExecute}
+                                disabled={isAiProcessing || aiConfigs.length === 0 || aiPrompts.length === 0}
+                                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-muted disabled:text-muted-foreground text-white font-black h-[42px] px-8 rounded-xl transition-all shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                {isAiProcessing ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                        <span>处理中</span>
+                                    </>
+                                ) : (
+                                    <span>开始任务</span>
+                                )}
+                            </button>
+                        </div>
+
+                        {aiStatus && (
+                            <div className={cn(
+                                "md:col-span-3 mt-2 p-2 rounded-lg text-xs flex items-center gap-2 animate-in fade-in zoom-in",
+                                aiStatus.type === 'error' ? "bg-destructive/10 text-destructive" : "bg-green-500/10 text-green-600"
+                            )}>
+                                {aiStatus.type === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+                                {aiStatus.text}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="flex-1 flex overflow-hidden relative">
                 {/* 编辑区 */}

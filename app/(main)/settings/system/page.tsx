@@ -1,9 +1,10 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Settings, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Settings, ShieldAlert, Bot } from 'lucide-react'
 import BrandingForm from '../branding-form'
 import UserManagement from './user-management'
+import AiSettingsForm from './ai-settings-form'
 import { listUsers } from './actions'
 
 export default async function SystemSettingsPage() {
@@ -39,6 +40,8 @@ export default async function SystemSettingsPage() {
 
     const siteName = user.user_metadata?.site_name || process.env.NEXT_PUBLIC_SITE_NAME || 'DocSpace'
     const siteGradient = user.user_metadata?.site_gradient || 'from-indigo-500 to-purple-500'
+    const aiConfigs = user.user_metadata?.ai_configs || []
+    const aiPrompts = user.user_metadata?.ai_prompts || []
 
     return (
         <div className="p-4 md:p-8 pt-20 md:pt-8 max-w-4xl mx-auto space-y-12">
@@ -55,21 +58,34 @@ export default async function SystemSettingsPage() {
                 </div>
             </header>
 
-            {/* 1. 站点品牌设置 */}
-            <section className="bg-card border rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-6">
-                    <Settings className="text-indigo-500" size={20} />
-                    <h2 className="text-lg font-bold">站点品牌</h2>
-                </div>
-                <div className="max-w-xl">
-                    <BrandingForm initialName={siteName} initialGradient={siteGradient} />
-                </div>
-            </section>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-2 space-y-8">
+                    {/* 1. AI 设置 */}
+                    <section className="bg-card border rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Bot className="text-indigo-500" size={20} />
+                            <h2 className="text-lg font-bold">AI 处理中心</h2>
+                        </div>
+                        <AiSettingsForm initialConfigs={aiConfigs} initialPrompts={aiPrompts} />
+                    </section>
 
-            {/* 2. 用户权限管理 */}
-            <section>
-                <UserManagement initialUsers={authUsers || []} currentUserId={user.id} />
-            </section>
+                    {/* 2. 用户权限管理 */}
+                    <section>
+                        <UserManagement initialUsers={authUsers || []} currentUserId={user.id} />
+                    </section>
+                </div>
+
+                <div className="space-y-8">
+                    {/* 3. 站点品牌设置 */}
+                    <section className="bg-card border rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Settings className="text-indigo-500" size={20} />
+                            <h2 className="text-lg font-bold">站点品牌</h2>
+                        </div>
+                        <BrandingForm initialName={siteName} initialGradient={siteGradient} />
+                    </section>
+                </div>
+            </div>
         </div>
     )
 }
