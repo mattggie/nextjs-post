@@ -36,6 +36,18 @@ export async function POST(request: NextRequest) {
         if (action === 'create_folder') {
             if (!name) return NextResponse.json({ error: '缺少文件夹名称' }, { status: 400 })
 
+            // 检查是否已存在同名文件夹
+            const { data: existingFolder } = await supabaseAdmin
+                .from('folders')
+                .select('id')
+                .eq('name', name)
+                .eq('user_id', targetUser.id)
+                .maybeSingle()
+
+            if (existingFolder) {
+                return NextResponse.json({ success: true, id: existingFolder.id, message: '文件夹已存在' })
+            }
+
             const { data, error } = await supabaseAdmin
                 .from('folders')
                 .insert({ name, user_id: targetUser.id })
@@ -47,9 +59,35 @@ export async function POST(request: NextRequest) {
         }
 
         // --- 动作 2: 上传文档 ---
-        if (action === 'upload_document' || !action) { // 兼容旧版不带action的调用
-            if (!title || !folder_id) {
-                return NextResponse.json({ error: '缺少必填字段: title 或 folder_id' }, { status: 400 })
+        if (action === 'upload_document' || !action) {
+            const { title, content, folder_id, folder_name } = body
+            let targetFolderId = folder_id
+
+            // 如果提供了文件夹名称但没提供ID，则查找或创建文件夹
+            if (!targetFolderId && folder_name) {
+                const { data: existingFolder } = await supabaseAdmin
+                    .from('folders')
+                    .select('id')
+                    .eq('name', folder_name)
+                    .eq('user_id', targetUser.id)
+                    .maybeSingle()
+
+                if (existingFolder) {
+                    targetFolderId = existingFolder.id
+                } else {
+                    const { data: newFolder, error: folderError } = await supabaseAdmin
+                        .from('folders')
+                        .insert({ name: folder_name, user_id: targetUser.id })
+                        .select('id')
+                        .single()
+
+                    if (folderError) throw folderError
+                    targetFolderId = newFolder.id
+                }
+            }
+
+            if (!title || !targetFolderId) {
+                return NextResponse.json({ error: '缺少必填字段: title 或 folder_id/folder_name' }, { status: 400 })
             }
 
             // 插入文档
@@ -58,7 +96,7 @@ export async function POST(request: NextRequest) {
                 .insert({
                     title,
                     content: content || '',
-                    folder_id,
+                    folder_id: targetFolderId,
                     user_id: targetUser.id
                 })
                 .select('id')
