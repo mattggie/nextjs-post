@@ -1,15 +1,16 @@
 'use client'
 
-import { Loader2 } from 'lucide-react'
-
 export default function Loading() {
     return (
-        <div className="flex-1 flex items-center justify-center p-8">
-            <div className="relative flex flex-col items-center">
-                <div className="w-12 h-12 border-4 border-indigo-500/10 rounded-full"></div>
-                <div className="absolute inset-0 w-12 h-12 border-4 border-t-indigo-600 rounded-full animate-spin"></div>
-                <p className="mt-4 text-sm font-medium text-muted-foreground animate-pulse">正在加载内容...</p>
-            </div>
+        <div className="fixed top-0 left-0 right-0 h-1 z-[100] overflow-hidden bg-indigo-500/10">
+            <div className="h-full bg-indigo-500 animate-[loading_2s_infinite_ease-in-out]"></div>
+            <style jsx>{`
+                @keyframes loading {
+                    0% { width: 0; transform: translateX(-100%); }
+                    50% { width: 100%; transform: translateX(0); }
+                    100% { width: 0; transform: translateX(100%); }
+                }
+            `}</style>
         </div>
     )
 }

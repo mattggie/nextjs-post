@@ -5,7 +5,17 @@ import { ArrowLeft, Settings, ShieldAlert, Bot } from 'lucide-react'
 import BrandingForm from '../branding-form'
 import UserManagement from './user-management'
 import AiSettingsForm from './ai-settings-form'
-import { listUsers } from './actions'
+import { Suspense } from 'react'
+import { Skeleton } from '@/components/skeletons'
+
+export const metadata = {
+    title: '系统设置 - DocSpace',
+}
+
+async function UserManagementSection({ currentUserId }: { currentUserId: string }) {
+    const { data: { users: authUsers } } = await (await import('@/utils/supabase/server')).createAdminClient().then(c => c.auth.admin.listUsers())
+    return <UserManagement initialUsers={authUsers || []} currentUserId={currentUserId} />
+}
 
 export default async function SystemSettingsPage() {
     const supabase = await createClient()
@@ -35,8 +45,6 @@ export default async function SystemSettingsPage() {
             </div>
         )
     }
-
-    const { data: { users: authUsers } } = await (await import('@/utils/supabase/server')).createAdminClient().then(c => c.auth.admin.listUsers())
 
     const siteName = user.user_metadata?.site_name || process.env.NEXT_PUBLIC_SITE_NAME || 'DocSpace'
     const siteGradient = user.user_metadata?.site_gradient || 'from-indigo-500 to-purple-500'
@@ -71,7 +79,9 @@ export default async function SystemSettingsPage() {
 
                     {/* 2. 用户权限管理 */}
                     <section>
-                        <UserManagement initialUsers={authUsers || []} currentUserId={user.id} />
+                        <Suspense fallback={<Skeleton className="h-[400px] w-full rounded-2xl" />}>
+                            <UserManagementSection currentUserId={user.id} />
+                        </Suspense>
                     </section>
                 </div>
 
