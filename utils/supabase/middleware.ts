@@ -3,9 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
     let response = NextResponse.next({
-        request: {
-            headers: request.headers,
-        },
+        request,
     })
 
     const supabase = createServerClient(
@@ -21,9 +19,7 @@ export async function updateSession(request: NextRequest) {
                         request.cookies.set(name, value)
                     )
                     response = NextResponse.next({
-                        request: {
-                            headers: request.headers,
-                        },
+                        request,
                     })
                     cookiesToSet.forEach(({ name, value, options }) =>
                         response.cookies.set(name, value, options)
@@ -33,17 +29,24 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
+    // IMPORTANT: Avoid calling getUser() on every single request if possible.
+    // For public routes or routes with API keys, we can skip the session check to improve performance.
+    const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+    const isApiUpload = request.nextUrl.pathname.startsWith('/api/upload')
+    const hasApiKey = request.headers.has('x-api-key')
+
+    // If it's an API call or the upload path, we might skip the session check
+    if (isApiUpload || hasApiKey) {
+        return response
+    }
+
     const {
         data: { user },
     } = await supabase.auth.getUser()
 
-    const hasApiKey = request.headers.has('x-api-key')
-
     if (
         !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/api/upload') &&
-        !hasApiKey
+        !isLoginPage
     ) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
@@ -51,7 +54,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     // If user is logged in and trying to access login, redirect to dashboard
-    if (user && request.nextUrl.pathname.startsWith('/login')) {
+    if (user && isLoginPage) {
         const url = request.nextUrl.clone()
         url.pathname = '/'
         return NextResponse.redirect(url)
@@ -59,3 +62,4 @@ export async function updateSession(request: NextRequest) {
 
     return response
 }
+
